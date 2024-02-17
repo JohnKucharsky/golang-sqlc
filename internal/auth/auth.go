@@ -7,7 +7,7 @@ import (
 )
 
 func GetApiKey(headers http.Header) (string, error) {
-	val := headers.Get("Authorization")
+	val := headers.Get("Auth")
 	if val == "" {
 		return "", errors.New("no authentication info")
 	}
