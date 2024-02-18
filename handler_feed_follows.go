@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/JohnKucharsky/golang-sqlc/internal/database"
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"net/http"
 	"time"
@@ -58,5 +59,61 @@ func (apiCfg *apiConfig) handlerCreateFeedFollow(
 
 	respondWithJSON(
 		w, http.StatusCreated, databaseFeedFollowToFeedFollow(feedFollow),
+	)
+}
+
+func (apiCfg *apiConfig) handlerGetFeedFollows(
+	w http.ResponseWriter,
+	r *http.Request,
+	user database.User,
+) {
+	feedFollows, err := apiCfg.DB.GetFeedFollows(r.Context(), user.ID)
+	if err != nil {
+		respondWithError(
+			w,
+			http.StatusBadRequest,
+			fmt.Sprintf("Couldn't get feed follows: %v", err.Error()),
+		)
+	}
+
+	respondWithJSON(
+		w,
+		http.StatusCreated,
+		databaseFeedFollowsToFeedFollows(feedFollows),
+	)
+}
+
+func (apiCfg *apiConfig) handlerDeleteFeedFollow(
+	w http.ResponseWriter,
+	r *http.Request,
+	user database.User,
+) {
+	feedFollowIdStr := chi.URLParam(r, "feedFollowId")
+	feedFollowId, err := uuid.Parse(feedFollowIdStr)
+	if err != nil {
+		respondWithError(
+			w,
+			http.StatusBadRequest,
+			fmt.Sprintf("Couldn't delete feed follow:%v", err.Error()),
+		)
+		return
+	}
+
+	err = apiCfg.DB.DeleteFeedFollow(
+		r.Context(),
+		database.DeleteFeedFollowParams{ID: feedFollowId, UserID: user.ID},
+	)
+	if err != nil {
+		respondWithError(
+			w,
+			http.StatusBadRequest,
+			fmt.Sprintf("Couldn't delete feed follow:%v", err.Error()),
+		)
+		return
+	}
+
+	respondWithJSON(
+		w, http.StatusOK, struct {
+		}{},
 	)
 }
