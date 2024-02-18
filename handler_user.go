@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/JohnKucharsky/golang-sqlc/internal/auth"
 	"github.com/JohnKucharsky/golang-sqlc/internal/database"
 	"github.com/google/uuid"
 	"net/http"
@@ -63,27 +62,8 @@ func (apiCfg *apiConfig) handlerCreateUser(
 
 func (apiCfg *apiConfig) handlerGetUser(
 	w http.ResponseWriter,
-	r *http.Request,
+	_ *http.Request,
+	user database.User,
 ) {
-	apiKey, err := auth.GetApiKey(r.Header)
-	if err != nil {
-		respondWithError(
-			w,
-			http.StatusForbidden,
-			fmt.Sprintf("Auth error: %v", err.Error()),
-		)
-		return
-	}
-
-	user, err := apiCfg.DB.GetUserByApiKey(r.Context(), apiKey)
-	if err != nil {
-		respondWithError(
-			w,
-			http.StatusBadRequest,
-			fmt.Sprintf("Couldn't get the user: %v", err.Error()),
-		)
-		return
-	}
-
 	respondWithJSON(w, http.StatusOK, databaseUserToUser(user))
 }

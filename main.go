@@ -6,9 +6,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
 	"github.com/go-playground/validator/v10"
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"log"
@@ -51,23 +48,6 @@ func main() {
 
 	apiCfg := apiConfig{DB: database.New(conn)}
 
-	driver, err := postgres.WithInstance(conn, &postgres.Config{})
-	if err != nil {
-		log.Println("With instance", err.Error())
-	}
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://sql/schema",
-		"postgres", driver,
-	)
-	if err != nil {
-		log.Println("New with database instance", err.Error())
-	}
-	err = m.Up()
-	if err != nil {
-		log.Println("Unable to migrate", err.Error())
-	}
-	log.Println("Migration succeeded")
-
 	router := chi.NewRouter()
 
 	router.Use(
@@ -92,7 +72,13 @@ func main() {
 	v1Router := chi.NewRouter()
 	v1Router.Get("/healthz", handlerReadiness)
 	v1Router.Post("/users", apiCfg.handlerCreateUser)
-	v1Router.Get("/users", apiCfg.handlerGetUser)
+	v1Router.Get("/users", apiCfg.middlewareAuth(apiCfg.handlerGetUser))
+	v1Router.Post("/feeds", apiCfg.middlewareAuth(apiCfg.handlerCreateFeed))
+	v1Router.Get("/feeds", apiCfg.handlerGetFeeds)
+	v1Router.Post(
+		"/feed_follows",
+		apiCfg.middlewareAuth(apiCfg.handlerCreateFeedFollow),
+	)
 
 	router.Mount("/v1", v1Router)
 
